@@ -13,6 +13,18 @@ type Data struct {
 
 // Dimension is the structure that holds the user page's dimensions (w x h).
 type Dimension struct {
-	Width  string
-	Height string
+	Width  string `json:"width"`
+	Height string `json:"height"`
+}
+
+// New receives a website URL and session ID (the only two required params for this)
+// and returns the created data object ref, whilst adding it to the data store.
+func New(websiteURL string, sessionID string) *Data {
+	d := &Data{
+		WebsiteURL: websiteURL,
+		SessionID:  sessionID,
+	}
+
+	Ds.Store(d.WebsiteURL, d.SessionID, d)
+	return d
 }
