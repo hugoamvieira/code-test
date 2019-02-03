@@ -19,10 +19,12 @@ type Dimension struct {
 
 // New receives a website URL and session ID (the only two required params for this)
 // and returns the created data object ref, whilst adding it to the data store.
+// New assumes that the passed URL and session ID have already been validated (using the Valid() functions).
 func New(websiteURL string, sessionID string) *Data {
 	d := &Data{
-		WebsiteURL: websiteURL,
-		SessionID:  sessionID,
+		WebsiteURL:   websiteURL,
+		SessionID:    sessionID,
+		CopyAndPaste: make(map[string]bool),
 	}
 
 	Ds.Store(d.WebsiteURL, d.SessionID, d)
