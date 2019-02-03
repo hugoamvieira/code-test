@@ -15,8 +15,8 @@ func New(s string) string {
 	b := uint32(0)
 	mod := uint32(65521)
 
-	for _, byte := range bytes {
-		a += uint32(byte) % mod
+	for _, by := range bytes {
+		a += uint32(by) % mod
 		b += a % mod
 	}
 
