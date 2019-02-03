@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hugoamvieira/code-test/server/data"
+	"github.com/hugoamvieira/code-test/server/hash"
 )
 
 // API wraps Go's HTTP server. I've created it so it's physically and conceptually
@@ -117,6 +118,7 @@ func (a *API) handleNewSession(w http.ResponseWriter, r *http.Request) {
 
 	d := data.New(nsr.WebsiteURL, sessionID)
 	log.Printf("Data @ handleNewSession\n%#+v", d)
+	log.Printf("Hash of %v: %v", d.WebsiteURL, hash.New(d.WebsiteURL))
 
 	resp := newSessionResponse{
 		SessionID: d.SessionID,
