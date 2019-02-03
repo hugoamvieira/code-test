@@ -1,4 +1,4 @@
-const url = 'http://localhost:5000' // This would need to be set from configuration.
+const baseUrl = 'http://localhost:5000' // This would need to be set from configuration.
 const cookieSessionID = 'session_id'
 
 $(document).ready(() => {
@@ -9,13 +9,14 @@ $(document).ready(() => {
 	// Since we're doing an async request, there's events we could miss here because we're
 	// doing an expensive POST request. Ideally, we could use something (maybe a queue)
 	// to store any events but for time's sake, I won't be doing that here.
-	$.ajax(url + '/new', {
+	$.ajax(baseUrl + '/new_session', {
 		type: 'POST',
 		data: JSON.stringify({ websiteURL: window.location.href }),
 		contentType: 'application/json',
-		success: (data, status, _) => {
+		success: (data) => {
 			// Request successful, save session id cookie and start listeners
-			Cookies.set(cookieSessionID, 'ay-hello-im-a-session-' + Math.random())
+			Cookies.set(cookieSessionID, data.sessionID)
+
 			listenForFirstResize()
 			listenForFieldCopyPaste()
 			listenForTimeToSubmit()
@@ -31,15 +32,15 @@ $(document).ready(() => {
 function listenForFirstResize() {
 	const resizeTimeoutMs = 1000
 	const namespacedResizeEvent = 'resize.listenonce'
-	const originalW = $(window).width()
-	const originalH = $(window).height()
+	const originalW = $(window).width().toString()
+	const originalH = $(window).height().toString()
 
 	let timer
 	$(window).on(namespacedResizeEvent, (e) => {
 		clearTimeout(timer)
 		timer = setTimeout(() => {
-			const w = $(window).width()
-			const h = $(window).height()
+			const w = $(window).width().toString()
+			const h = $(window).height().toString()
 
 			// Remove listener as we only care about the first resize.
 			$(window).off(namespacedResizeEvent);
@@ -58,7 +59,7 @@ function listenForFirstResize() {
 					height: h,
 				},
 			}
-			postEvent(ev)
+			postEvent(ev, baseUrl + '/new_resize_event')
 		}, resizeTimeoutMs)
 	});
 }
@@ -75,13 +76,14 @@ function listenForFieldCopyPaste() {
 				sessionID: Cookies.get(cookieSessionID),
 				inputID: e.target.id,
 			}
-			postEvent(ev)
+			postEvent(ev, baseUrl + '/new_cp_event')
 		}
 	});
 }
 
 function listenForTimeToSubmit() {
 	const namespacedKeyUpEvent = 'keyup.listenonce'
+	const namespacedSubmitEvent = 'submit.listenonce'
 
 	$('input').on(namespacedKeyUpEvent, (_) => {
 		const startTime = Date.now()
@@ -90,23 +92,29 @@ function listenForTimeToSubmit() {
 		$('input').off(namespacedKeyUpEvent);
 
 		// Start listening on form submit
-		$('form').on('submit', (_) => {
+		$('form').on(namespacedSubmitEvent, (e) => {
+			e.preventDefault()
+
 			ev = {
 				eventType: 'timeTaken',
 				websiteURL: window.location.href,
 				sessionID: Cookies.get(cookieSessionID),
-				timeSeconds: (Date.now() - startTime) / 1000,
+				timeSeconds: Math.round((Date.now() - startTime) / 1000),
 			}
-			postEvent(ev)
+			postEvent(ev, baseUrl + '/new_time_taken_event', () => {
+				// Request completed, submit form
+				$('form').unbind(namespacedSubmitEvent).submit()
+			})
 		})
 	})
 }
 
-function postEvent(ev) {
-	$.ajax(url + '/new_event', {
+function postEvent(ev, url, completeFn) {
+	$.ajax(url, {
 		type: 'POST',
 		data: JSON.stringify(ev),
 		contentType: 'application/json',
+		complete: completeFn,
 		error: (_, status, err) => {
 			// Similarly here, we could handle this better (if it errored we wouldn't remove it from the queue, for example)
 			// For time's sake, I'll just dump the error and keep going
